@@ -1,0 +1,24 @@
+{
+  "mnemonic": [
+    "midnight",
+    "depend",
+    "annual",
+    "mutual",
+    "oak",
+    "hen",
+    "cotton",
+    "gallery",
+    "potato",
+    "gorilla",
+    "post",
+    "wrestle",
+    "spirit",
+    "mountain",
+    "high"
+  ],
+  "secret": "46aada31308bc86fa6a8430637a665460bcd1047",
+  "amount": "9379097835",
+  "pkh": "tz1bP3uSKZ4caExVZRxAetZLtGg7tWWGVUra",
+  "password": "4YHKpRb7e3",
+  "email": "jmmctnnp.lajqxopp@tezos.example.org"
+}

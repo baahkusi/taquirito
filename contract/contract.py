@@ -53,9 +53,6 @@ class SafeChain(sp.Contract):
         self.data.manager = params.manager
 
 
-
-
-
 @sp.add_test(name = 'SafeChain Tests')
 def test():
     
@@ -165,5 +162,9 @@ def test():
     
     
     
+@sp.add_test(name="Initialize for deployment")
+def init_deploy():
     
+    sc = sp.test_scenario()
+    sc.register(SafeChain(sp.address('tz1gjb7vECNqrXrMAMDDpbf2AsxAGNen7LXn'), sp.address('tz1bP3uSKZ4caExVZRxAetZLtGg7tWWGVUra')))
     

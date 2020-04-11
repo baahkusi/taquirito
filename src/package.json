@@ -8,6 +8,7 @@
     "conseiljs": "0.4.2-beta.1",
     "core-js": "^3.6.4",
     "crypto-js": "^4.0.0",
+    "dotenv": "^8.2.0",
     "glob": "7.1.6",
     "random-js": "^2.1.0"
   },
