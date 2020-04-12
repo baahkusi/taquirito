@@ -1,12 +1,51 @@
+const CryptoJS = require("crypto-js");
 const tq = require('@taquito/taquito');
-const { createAccount, activateAccount, revealAccount } = require('./utils.js')
+const { MichelsonMap } = require('@taquito/michelson-encoder');
+const conseiljs = require('conseiljs');
 const { rpc, manager, contract } = require('./config.js');
-
-console.log(rpc);
 
 tq.Tezos.setProvider({ rpc: rpc });
 tq.Tezos.importKey(manager);
 
+async function createAccount() {
+    const mnemonic = conseiljs.TezosWalletUtil.generateMnemonic();
+    try {
+        const keystore = await conseiljs.TezosWalletUtil.unlockIdentityWithMnemonic(mnemonic, '');
+        return { keystore: keystore, mnemonic: mnemonic }
+    } catch (error) {
+        console.log(error);
+        return;
+    }
+
+}
+
+async function generateCertifiers(certifier_ids) {
+    var certifiers = {};
+
+    for (cid of certifier_ids) {
+
+        try {
+            const account = await createAccount();
+
+            certifiers[cid] = { publicKeyHash: account.keystore.publicKeyHash, privateKey: account.keystore.privateKey };
+        } catch (error) {
+            console.log(error);
+            return;
+        }
+    }
+
+    return certifiers;
+}
+
+function prepareCertifiersData(certifiers){
+    
+    var data = {};
+    for (const key in certifiers) {
+        data[key.toString()] = certifiers[key].publicKeyHash;
+    }
+
+    return MichelsonMap.fromLiteral(data);
+}
 
 async function updateCertifiers(certifier_ids) {
     /**
@@ -26,51 +65,53 @@ async function updateCertifiers(certifier_ids) {
      * 
      * input <- [ID1, 1D2, ID3, ...]
      * 
-     * output <- {ID1: {publicKeyHash: "xxxxx",  mnemonic: "xxxx"}}
+     * output <- {ID1: {publicKeyHash: "xxxxx",  privateKey: "xxxx"}}
      */
 
     // generate new identities for certifiers
 
-    var certifiers = {};
+    const certifiers = await generateCertifiers(certifier_ids);
 
-    for (cid of certifier_ids) {
-
-        try {
-            const account = await createAccount();
-            
-            const activate = await activateAccount(account.keystore);
-            
-            if (!activate) {
-                throw new Error(" Failled to activate account ...")
-            }
-
-            // const reveal = await revealAccount(account.keystore);
-
-            // if(!reveal){
-            //     throw new Error("Failed to reveal account ...")
-            // }
-
-            certifiers[cid] = { publicKeyHash: account.keystore.publicKeyHash, privateKey: account.keystore.privateKey };
-        } catch (error) {
-            console.log(error);
-            return;
-        }
-    }
+    const data = prepareCertifiersData(certifiers);
 
     // store on smart contract
 
+    const c = await tq.Tezos.contract.at(contract);
 
+    const invokeOP = await c.methods.update_certifiers(data).send();
 
+    await invokeOP.confirmation(2);
 
-
-    console.log(certifiers);
+    return certifiers;
 
 }
 
-updateCertifiers([1, 2, 3]);
+async function registerLookup(item){
+    /**
+     * Use this function to keep track of how many times an item has been scanned.
+     * 
+     * 
+     */
+    try {
 
+        const itemHash = CryptoJS.SHA256(item.name.toLowerCase() + item.ean_code.toLowerCase()).toString();
+
+        const c = await tq.Tezos.contract.at(contract);
+
+        const invokeOP = await c.methods.register_lookup(itemHash).send();
+
+        await invokeOP.confirmation(1);
+
+        return true;
+        
+    } catch (error) {
+        console.log(error);
+        return;
+    }
+}
 
 module.exports = {
+    registerLookup: registerLookup,
     updateCertifiers: updateCertifiers
 };
 
