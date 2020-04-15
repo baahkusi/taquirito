@@ -2,6 +2,7 @@ const CryptoJS = require("crypto-js");
 const { rpc, contract } = require('./config.js');
 const tq = require('@taquito/taquito');
 const { MichelsonMap } = require('@taquito/michelson-encoder');
+const conseiljs = require('conseiljs');
 tq.Tezos.setProvider({ rpc: rpc });
 
 
@@ -55,6 +56,8 @@ async function addItems(certifier_id, certifier_key, items) {
 
         await invokeOP.confirmation(1);
 
+        console.log(invokeOP.hash);
+        
         return invokeOP.hash;
 
     } catch (error) {
@@ -90,8 +93,57 @@ async function verifyItem(item){
     }
 }
 
+
+async function validateCredentials(certifier_id, certifier_key){
+
+    /**
+     * This function takes the id and private key of certifier and checks if 
+     * the certifier is registered.
+     * 
+     * @param certifier_id -> id of certifier
+     * @param certifier_key -> private key of certifier
+     * 
+     * The function returns true or false
+     */
+
+    var keystore;
+    
+     try{
+
+        keystore = await conseiljs.TezosWalletUtil.restoreIdentityWithSecretKey(certifier_key);
+
+        console.log(keystore);
+
+     } catch(error){
+        console.log(error);
+
+        return false;
+     }
+
+    const c = await tq.Tezos.contract.at(contract);
+
+    const s = await c.storage();
+
+    try {
+        const pkh = s.certifiers.get(certifier_id);
+        
+        if (pkh != keystore.publicKeyHash) {
+            return false;
+        }
+        
+    } catch (error) {
+        console.log(error);
+
+        return false;
+    }
+
+     return true;
+}
+
+
 module.exports = {
     addItems: addItems,
     verifyItem: verifyItem,
+    validateCredentials: validateCredentials
 }
 

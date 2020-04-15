@@ -2,7 +2,9 @@ const CryptoJS = require("crypto-js");
 const tq = require('@taquito/taquito');
 const { MichelsonMap } = require('@taquito/michelson-encoder');
 const conseiljs = require('conseiljs');
-const { rpc, manager, contract } = require('./config.js');
+const { rpc, manager, contract, network, conseilServer } = require('./config.js');
+
+const GAS_ALLOWANCE = 1;
 
 tq.Tezos.setProvider({ rpc: rpc });
 tq.Tezos.importKey(manager);
@@ -17,6 +19,28 @@ async function createAccount() {
         return;
     }
 
+}
+
+async function transferTezToCertifiers(certfiers) {
+
+    var faileds = [];
+
+    for (const id in certfiers) {
+
+        try {
+            const res = await tq.Tezos.contract.transfer({ to: certfiers[id].publicKeyHash, amount: GAS_ALLOWANCE });
+
+            await res.confirmation(1);
+        } catch (error) {
+            console.log(error);
+
+            // if transfer failed, store id of certifier to be used again
+            faileds.push(id);
+        }
+
+    }
+
+    return faileds
 }
 
 async function generateCertifiers(certifier_ids) {
@@ -37,8 +61,8 @@ async function generateCertifiers(certifier_ids) {
     return certifiers;
 }
 
-function prepareCertifiersData(certifiers){
-    
+function prepareCertifiersData(certifiers) {
+
     var data = {};
     for (const key in certifiers) {
         data[key.toString()] = certifiers[key].publicKeyHash;
@@ -82,15 +106,23 @@ async function updateCertifiers(certifier_ids) {
 
     await invokeOP.confirmation(2);
 
+    // now that they've successfully been added, transfer some amount to their account to pay for gas
+
+    await transferTezToCertifiers(certifiers);
+
     return certifiers;
 
 }
 
-async function registerLookup(item){
+async function registerLookup(item) {
     /**
      * Use this function to keep track of how many times an item has been scanned.
      * 
+     * Example
+     * =======
+     * item = { name: 'item3 name hash', lot_number: 'item3 lot', ean_code: '221D', expiration_date: '2050-01-01', ... }
      * 
+     * registerLookup(item)
      */
     try {
 
@@ -103,15 +135,57 @@ async function registerLookup(item){
         await invokeOP.confirmation(1);
 
         return true;
-        
+
     } catch (error) {
         console.log(error);
         return;
     }
 }
 
+
+async function checkOPCode(opcode) {
+    /**
+     * This function scans the blockchain to verify if the given opcode was recently created
+     * 
+     * @param opcode -> opcode returned from creating drugs
+     * 
+     * Example
+     * ========
+     * checkOPCode('oniwrhZZ4LJV52FBtE8965vJ3PEcMRM9QU1HiMsK8cE5KeLPJzs')
+     */
+
+    const entity = 'operations';
+    const platform = 'tezos';
+    var accountQuery = conseiljs.ConseilQueryBuilder.blankQuery();
+    accountQuery = conseiljs.ConseilQueryBuilder.addPredicate(accountQuery, 'operation_group_hash', conseiljs.ConseilOperator.EQ, [opcode], false);
+    accountQuery = conseiljs.ConseilQueryBuilder.setLimit(accountQuery, 1);
+
+    var result;
+    try {
+        result = await conseiljs.ConseilDataClient.executeEntityQuery(conseilServer, platform, network, entity, accountQuery);
+
+        if (result.length == 0) {
+            return false;
+        }
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+
+    const now = Date.now();
+
+    const diff = Math.floor((now - result[0].timestamp) / 1000);
+
+    //   Must valid only within first 5 minutes
+    console.log(diff <= 300);
+    return diff <= 300;
+}
+
+checkOPCode('oniwrhZZ4LJV52FBtE8965vJ3PEcMRM9QU1HiMsK8cE5KeLPJzs');
+
 module.exports = {
     registerLookup: registerLookup,
-    updateCertifiers: updateCertifiers
+    updateCertifiers: updateCertifiers,
+    checkOPCode: checkOPCode
 };
 
