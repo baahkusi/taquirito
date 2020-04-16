@@ -1,10 +1,12 @@
 const CryptoJS = require("crypto-js");
-const { rpc, contract } = require('./config.js');
 const tq = require('@taquito/taquito');
+const ts = require('@taquito/signer');
 const { MichelsonMap } = require('@taquito/michelson-encoder');
-const conseiljs = require('conseiljs');
-tq.Tezos.setProvider({ rpc: rpc });
 
+const rpc = 'https://carthagenet.smartpy.io';
+const contract = 'KT1JqopuEZhVUdBT6CgX2DSMCcvmLAowGNtX';
+
+tq.Tezos.setProvider({ rpc: rpc });
 
 function prepareItemsData(items) {
 
@@ -106,13 +108,13 @@ async function validateCredentials(certifier_id, certifier_key){
      * The function returns true or false
      */
 
-    var keystore;
+    var publicKeyHash;
     
      try{
 
-        keystore = await conseiljs.TezosWalletUtil.restoreIdentityWithSecretKey(certifier_key);
+        const signer = await ts.InMemorySigner.fromSecretKey(certifier_key)
 
-        console.log(keystore);
+        publicKeyHash = await signer.publicKeyHash();
 
      } catch(error){
         console.log(error);
@@ -127,7 +129,7 @@ async function validateCredentials(certifier_id, certifier_key){
     try {
         const pkh = s.certifiers.get(certifier_id);
         
-        if (pkh != keystore.publicKeyHash) {
+        if (pkh != publicKeyHash) {
             return false;
         }
         
@@ -136,9 +138,11 @@ async function validateCredentials(certifier_id, certifier_key){
 
         return false;
     }
-
+    
      return true;
 }
+
+validateCredentials('cert1', 'edskS6DTBx1QXuZ23eR93MgymHrAp9yn2Vaxp8jXtK7W6hqtarRSMRHFX32Qw2KzDcMtLaqQkXuHgsEEfgChumsnZuaboLqd1q')
 
 
 module.exports = {

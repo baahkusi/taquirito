@@ -9,3 +9,5 @@ const cert1 = 'edskS6DTBx1QXuZ23eR93MgymHrAp9yn2Vaxp8jXtK7W6hqtarRSMRHFX32Qw2KzD
 const cert2 = 'edskRfGKLMopiw47tzcKpxDdVZt3WD8kt9V6MgkPS5aNEfPQeXn8gr5y9fFQ2THDQxFCPLWWoYR7QzaNNg8k6tkdwBFBd1ctfV';
 const invalidcert3 = 'edskRmFXVMBdP2k8Wd2UsKx1S6GFn6BSZQCyVeXUbSewLANPQCvbmtm5hJ5auuL3mQ67ueTqLSnR4tuTT5MDJZ7XUiNea9bMWd';
 
+validateCredentials('cert1', cert1);
+validateCredentials('cert2', cert2)
