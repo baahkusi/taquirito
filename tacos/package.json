@@ -1,0 +1,14 @@
+{
+  "name": "tacos",
+  "version": "1.0.0",
+  "description": "utilities for tezos",
+  "main": "deploy.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@taquito/taquito": "^6.3.2-beta.0"
+  }
+}
